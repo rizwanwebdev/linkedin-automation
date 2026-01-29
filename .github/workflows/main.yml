@@ -1,0 +1,30 @@
+name: LinkedIn Auto Post
+
+on:
+  schedule:
+    - cron: "0 */4 * * *" # every 4 hours UTC
+  workflow_dispatch: # allows manual trigger
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run script
+        run: python app.py
+        env:
+          GOOGLE_CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
