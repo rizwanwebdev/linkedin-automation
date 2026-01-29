@@ -4,7 +4,8 @@ import requests
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from groq import Groq
-
+from markdown import markdown
+from bs4 import BeautifulSoup
 
 # ================= CONFIG =================
 GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
@@ -82,6 +83,10 @@ Avoid buzzwords. Focus on practical thinking.
     )
 
     return response.choices[0].message.content.strip()
+# ========== MARKDOWN TO PLAIN TEXT ==========
+def markdown_to_text(md: str) -> str:
+    html = markdown(md)
+    return BeautifulSoup(html, "html.parser").get_text()
 
 
 # ========== LINKEDIN ==========
@@ -124,7 +129,7 @@ def main():
         return
 
     post_text = generate_post(row["AI Prompt"])
-
+    post_text = markdown_to_text(post_text) 
     post_to_linkedin(post_text)
     sheet.update(f"C{row_number}", [["Posted"]])
     print("✅ Posted and sheet updated")

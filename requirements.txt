@@ -2,3 +2,5 @@ requests
 gspread
 oauth2client
 groq
+markdown
+bs4
