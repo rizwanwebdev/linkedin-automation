@@ -5,6 +5,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from groq import Groq
 from markdown import markdown
+import re
 from bs4 import BeautifulSoup
 
 # ================= CONFIG =================
@@ -61,15 +62,28 @@ def generate_post(prompt: str) -> str:
     system_prompt = """
 You are a software developer and digital tech professional writing LinkedIn posts for early-career developers and IT professionals.
 
-Write a LinkedIn post (180–240 words) that:
-• starts with a strong one-line hook
-• explains a real-world dev or SaaS concept simply
-• includes 3 takeaways using emoji bullets (⭐ or 🔹)
-• add code examples if required
-• ends with a question inviting comments
+Write a LinkedIn post (180–240 words) with the following rules:
 
-Tone: conversational, clear, slightly witty.
-Avoid buzzwords. Focus on practical thinking.
+STRUCTURE
+- Start immediately with the hook. Do NOT add any introductions or labels.
+- Use short, readable paragraphs with a blank line between ideas.
+- Include exactly 3 takeaway bullets using ⭐ or 🔹.
+- End with a single question to invite comments.
+
+STYLE
+- Conversational, clear, slightly witty.
+- Practical and experience-driven.
+- Avoid buzzwords and marketing language.
+
+STRICT OUTPUT RULES
+- Output ONLY the post text.
+- Do NOT say “Here’s a LinkedIn post”, “Below is”, or similar.
+- Do NOT explain what you are doing.
+- Do NOT add headings, titles, or summaries.
+- Do NOT wrap the output in quotes or markdown fences.
+
+The output must be ready to paste directly into LinkedIn without any cleanup.
+
 """
 
     response = groq_client.chat.completions.create(
@@ -85,9 +99,21 @@ Avoid buzzwords. Focus on practical thinking.
     return response.choices[0].message.content.strip()
 # ========== MARKDOWN TO PLAIN TEXT ==========
 def markdown_to_text(md: str) -> str:
+    # Convert Markdown → HTML
     html = markdown(md)
-    return BeautifulSoup(html, "html.parser").get_text()
 
+    # Parse HTML
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Convert block elements into spaced text
+    text = soup.get_text(separator="\n\n")
+
+    # Normalize spacing:
+    # - Max 2 newlines
+    # - Trim leading/trailing space
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    return text.strip()
 
 # ========== LINKEDIN ==========
 def post_to_linkedin(text: str):
@@ -132,7 +158,6 @@ def main():
     post_text = markdown_to_text(post_text) 
     post_to_linkedin(post_text)
     sheet.update(f"C{row_number}", [["Posted"]])
-    print("✅ Posted and sheet updated")
 
 
 if __name__ == "__main__":
